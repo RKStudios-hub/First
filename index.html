@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My first [First Person Shooter]</title>
+    <style>
+        @font-face {
+    font-family: 'font';
+    src: url(font.ttf);
+
+    }
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+          }
+        #gui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            width: 97%;
+        }
+        #bullets-left {
+            font-family: 'font';
+            font-size: 24px;
+            color: yellow;
+        }
+        #ammo-label {
+            font-family: 'font';
+            font-size: 16px;
+            color: white;
+        }
+        #health-bar {
+            margin-top: 620px;
+            margin-left: 30px;
+            width: 300px;
+            height: 20px;
+            background-color: rgb(255, 152, 152);
+            border: 3px solid rgb(0, 0, 0);
+        }
+        #health {
+            height: 100%;
+            background-color: rgb(255, 0, 0);
+        }
+        .crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+        }
+        #kill-counter {
+            font-family: 'font';
+            position: absolute;
+            top: 20px;
+            right: 4.5%;
+            font-size: 24px;
+            color: rgb(255, 255, 255);
+        }
+        .heart{
+            position: absolute;
+            bottom: -33px;
+            left: 3%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;  
+        }
+        .skull{
+            position: absolute;
+            top: 35px;
+            right: -1%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;  
+        }
+        .ammo {
+            position: absolute;
+            top: 40px;
+            left: 6.5%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;  
+        }
+        .hand{
+            position: absolute;
+            bottom:-35%;
+            right: 3%;
+            transform: translate(-50%, -50%);
+            transition: transform 0.2s ease-out; /* Smooth transition */
+        }
+
+        .controls {
+      bottom: 10px;      
+      position: absolute;
+      right: 10px;
+      height: 200px;
+      width: 150px;
+      background: rgba(255, 255, 255, 0.645);
+      border-radius: 10px; /* Adds rounded corners */
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center; /* Centralizes text */
+      text-align: center; /* Ensures text is centered */
+      padding: 10px; /* Adds padding for a better look */
+      box-sizing: border-box; /* Ensures padding does not exceed width */
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); /* Adjust values for size and opacity */
+      border: 4px solid rgb(0, 0, 0);
+       }
+  p{
+    font-family: 'font';
+     font-size:13px;
+  }
+  span1{
+    font-family: 'font';
+    color:rgb(128, 128, 128);
+    font-size:18px;
+  }
+  a1{
+    color:rgb(128, 128, 128); 
+  }
+ 
+    </style>
+</head>
+<body>
+    <img src="crosshair.svg" class="crosshair" />
+    <img src="hand.png" class="hand" />
+    <div id="gui">
+        <div class="box3">
+            <div id="ammo-label">Ammo:</div>
+        <div id="bullets-left">30</div>
+        <img src="ammo.png" class="ammo" />
+        </div>
+        <div class="box2">
+            <div id="health-bar">
+                <div id="health" style="width: 100%;"></div>
+                <img src="h.gif" class="heart" />
+            </div>
+        </div>
+        <div class="box1">
+        <div id="kill-counter">Kills: <span id="kill-count">0</span></div>
+        <img src="skull.png" class="skull" />
+    </div>
+    </div>
+    <div class="stand"></div>
+  <div class="base"></div>
+  <div class="controls">
+    
+    <span1>Controls-</span1>
+   
+   <p> Forward-  <a1>[W]</a1><br>
+     Backward-  <a1>[S]</a1><br>
+     Jump-  <a1>[Space]</a1><br>
+     sprint-  <a1>[Shift]</a1><br>
+     reload-  <a1>[R]</a1</p>
+    
+  </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
+    <script>
+        let scene, camera, renderer, controls;
+        let objects = [];
+        let enemies = [];
+        let bulletsLeft = 30;
+        const maxBullets = 30;
+        const bulletSpeed = 50;
+        let health = 100;
+        const maxHealth = 100;
+        let isJumping = false;
+        let canJump = true;
+        let isSprinting = false;
+        let lastEnemySpawnTime = 0;
+        const enemySpawnInterval = 5000; // 5 seconds
+        let enemyDamage = 0.5; // Enemy damage configurable
+        let screenShakeTime = 0;
+        const screenShakeDuration = 1; // Duration of screen shake in seconds
+        const screenShakeMagnitude = 0.5; // Magnitude of screen shake
+        let killCount = 0; // Counter for kills
+
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.y = 1.6;
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            document.body.appendChild(renderer.domElement);
+
+            controls = new THREE.PointerLockControls(camera, document.body);
+
+            document.addEventListener('click', () => {
+                controls.lock();
+            });
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 20, 10);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+
+            directionalLight.shadow.mapSize.width = 1024;
+            directionalLight.shadow.mapSize.height = 1024;
+            directionalLight.shadow.camera.near = 0.5;
+            directionalLight.shadow.camera.far = 500;
+
+            window.addEventListener('resize', onWindowResize, false);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function createEnvironment() {
+            const groundGeometry = new THREE.PlaneGeometry(100, 100);
+            const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x007700 });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+            objects.push(ground);
+
+            const wallGeometry = new THREE.BoxGeometry(10, 3, 1);
+            const wallMaterial = new THREE.MeshStandardMaterial({ color: 0x888888 });
+            const wall = new THREE.Mesh(wallGeometry, wallMaterial);
+            wall.position.set(0, 1.5, -5);
+            wall.receiveShadow = true;
+            wall.castShadow = true;
+            scene.add(wall);
+            objects.push(wall);
+        }
+
+        function createEnemy() {
+            const enemyGeometry = new THREE.BoxGeometry(1, 1, 1);
+            const enemyMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+            const enemy = new THREE.Mesh(enemyGeometry, enemyMaterial);
+            let distance = 0;
+            while (distance < 10) {
+                enemy.position.set(
+                    Math.random() * 50 - 25,
+                    0.5,
+                    Math.random() * 50 - 25
+                );
+                distance = enemy.position.distanceTo(camera.position);
+            }
+            enemy.health = 100;
+            enemy.castShadow = true;
+            scene.add(enemy);
+            enemies.push(enemy);
+        }
+
+        function setupEnemies() {
+            for (let i = 0; i < 5; i++) {
+                createEnemy();
+            }
+        }
+
+        let moveForward = false;
+        let moveBackward = false;
+        let moveLeft = false;
+        let moveRight = false;
+
+        function setupControls() {
+            const onKeyDown = function (event) {
+                switch (event.code) {
+                    case 'ArrowUp':
+                    case 'KeyW':
+                        moveForward = true;
+                        break;
+                    case 'ArrowDown':
+                    case 'KeyS':
+                        moveBackward = true;
+                        break;
+                    case 'ArrowLeft':
+                    case 'KeyA':
+                        moveLeft = true;
+                        break;
+                    case 'ArrowRight':
+                    case 'KeyD':
+                        moveRight = true;
+                        break;
+                    case 'KeyR':
+                        reload();
+                        break;
+                    case 'ShiftLeft':
+                        isSprinting = true;
+                        break;
+                    case 'Space':
+                        if (canJump) {
+                            isJumping = true;
+                            canJump = false;
+                        }
+                        break;
+                    case 'Digit1':
+                        enemyDamage = parseFloat(prompt("Enter new enemy damage:", enemyDamage)) || enemyDamage;
+                        break;
+                    case 'Digit2':
+                        health = parseInt(prompt("Enter new player health:", health), 10) || health;
+                        if (health > maxHealth) health = maxHealth;
+                        document.getElementById('health').style.width = `${(health / maxHealth) * 100}%`;
+                        break;
+                }
+            };
+
+            const onKeyUp = function (event) {
+                switch (event.code) {
+                    case 'ArrowUp':
+                    case 'KeyW':
+                        moveForward = false;
+                        break;
+                    case 'ArrowDown':
+                    case 'KeyS':
+                        moveBackward = false;
+                        break;
+                    case 'ArrowLeft':
+                    case 'KeyA':
+                        moveLeft = false;
+                        break;
+                    case 'ArrowRight':
+                    case 'KeyD':
+                        moveRight = false;
+                        break;
+                    case 'ShiftLeft':
+                        isSprinting = false;
+                        break;
+                }
+            };
+
+            document.addEventListener('keydown', onKeyDown, false);
+            document.addEventListener('keyup', onKeyUp, false);
+        }
+
+        function updateControls(delta) {
+            const baseSpeed = 5;
+            const sprintMultiplier = 2;
+            const moveSpeed = (isSprinting ? baseSpeed * sprintMultiplier : baseSpeed) * delta;
+
+            if (moveForward) controls.moveForward(moveSpeed);
+            if (moveBackward) controls.moveForward(-moveSpeed);
+            if (moveLeft) controls.moveRight(-moveSpeed);
+            if (moveRight) controls.moveRight(moveSpeed);
+
+            if (isJumping) {
+                camera.position.y += 5 * delta;
+                if (camera.position.y >= 3) {
+                    isJumping = false;
+                }
+            } else if (camera.position.y > 1.6) {
+                camera.position.y -= 5 * delta;
+                if (camera.position.y < 1.6) {
+                    camera.position.y = 1.6;
+                    canJump = true;
+                }
+            }
+        }
+
+        function createGun() {
+            const gunGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.5);
+            const gunMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
+            const gun = new THREE.Mesh(gunGeometry, gunMaterial);
+            gun.position.set(0.1, -0.2, -0.5);
+            camera.add(gun);
+        }
+
+        function setupShooting() {
+            document.addEventListener('click', () => {
+                if (controls.isLocked && bulletsLeft > 0) {
+                    shoot();
+                    bulletsLeft--;
+                    document.getElementById('bullets-left').innerText = bulletsLeft;
+                }
+            });
+        }
+
+        function reload() {
+            bulletsLeft = maxBullets;
+            document.getElementById('bullets-left').innerText = bulletsLeft;
+        }
+
+        function shoot() {
+            const bulletGeometry = new THREE.SphereGeometry(0.05, 8, 8);
+            const bulletMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+            const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
+
+            const bulletDirection = new THREE.Vector3();
+            camera.getWorldDirection(bulletDirection);
+            bullet.position.copy(camera.position);
+            bullet.position.add(bulletDirection.clone().multiplyScalar(0.5));
+
+            bullet.userData.velocity = bulletDirection.multiplyScalar(bulletSpeed);
+            bullet.userData.gravity = new THREE.Vector3(0, -9.81, 0);
+
+            bullet.castShadow = true;
+            scene.add(bullet);
+            objects.push(bullet);
+        }
+
+        function updateBullets(delta) {
+            for (let i = 0; i < objects.length; i++) {
+                const obj = objects[i];
+                if (obj.userData.velocity) {
+                    obj.userData.velocity.add(obj.userData.gravity.clone().multiplyScalar(delta));
+                    obj.position.addScaledVector(obj.userData.velocity, delta);
+
+                    for (let j = 0; j < objects.length; j++) {
+                        const other = objects[j];
+                        if (other.userData.isStatic && obj.position.distanceTo(other.position) < 0.5) {
+                            obj.userData.velocity = obj.userData.velocity.multiplyScalar(-0.5);
+                        }
+                    }
+
+                    for (let j = 0; j < enemies.length; j++) {
+                        const enemy = enemies[j];
+                        if (obj.position.distanceTo(enemy.position) < 1) {
+                            enemy.health -= 50;
+                            if (enemy.health <= 0) {
+                                scene.remove(enemy);
+                                enemies.splice(j, 1);
+                                j--;
+
+                                // Update kill count
+                                killCount++;
+                                document.getElementById('kill-count').innerText = killCount;
+                            }
+                            scene.remove(obj);
+                            objects.splice(i, 1);
+                            i--;
+                            break;
+                        }
+                    }
+
+                    if (obj.position.length() > 100) {
+                        scene.remove(obj);
+                        objects.splice(i, 1);
+                        i--;
+                    }
+                }
+            }
+        }
+
+        function updateEnemies(delta) {
+            const enemySpeed = 2 * delta;
+            for (let i = 0; i < enemies.length; i++) {
+                const enemy = enemies[i];
+                const direction = new THREE.Vector3();
+                enemy.lookAt(camera.position);
+                direction.subVectors(camera.position, enemy.position).normalize();
+                enemy.position.addScaledVector(direction, enemySpeed);
+
+                if (enemy.position.distanceTo(camera.position) < 1) {
+                    health -= enemyDamage;
+                    if (health < 0) health = 0;
+                    document.getElementById('health').style.width = `${(health / maxHealth) * 100}%`;
+                    screenShakeTime = screenShakeDuration;
+                    if (health <= 0) {
+                        alert('Game Over!');
+                        location.reload();
+                    }
+                }
+            }
+
+            if (performance.now() - lastEnemySpawnTime > enemySpawnInterval) {
+                createEnemy();
+                lastEnemySpawnTime = performance.now();
+            }
+        }
+
+        function applyScreenShake(delta) {
+            if (screenShakeTime > 0) {
+                const shake = screenShakeMagnitude * (screenShakeTime / screenShakeDuration);
+                camera.position.x += (Math.random() - 0.5) * shake;
+                camera.position.y += (Math.random() - 0.5) * shake;
+                camera.position.z += (Math.random() - 0.5) * shake;
+                screenShakeTime -= delta;
+            }
+        }
+
+        let lastTime = performance.now();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = performance.now();
+            const delta = (time - lastTime) / 1000;
+
+            updateControls(delta);
+            updateBullets(delta);
+            updateEnemies(delta);
+            applyScreenShake(delta);
+
+            renderer.render(scene, camera);
+            lastTime = time;
+        }
+
+        init();
+        createEnvironment();
+        setupControls();
+        createGun();
+        setupShooting();
+        setupEnemies();
+        animate();
+        
+    </script>
+</body>
+</html>
